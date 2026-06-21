@@ -1,85 +1,84 @@
-"use client";
-
 import { useEffect, useState, useRef } from "react"
 import { getQuestion, submitVote, getLeaderboard } from "../services/api"
 
-// outside component — stable references, no dependency issues
-async function fetchQuestionAPI() {
-    return await getQuestion()
-}
-
-async function fetchLeaderboardAPI() {
-    return await getLeaderboard()
-}
-
 function Home() {
-    const [question, setQuestion] = useState(null)
-    const [options, setOptions] = useState([])
-    const [questionId, setQuestionId] = useState(null)
+    const [question, setQuestion] = useState("Hii! can you tell me your name")
+    const [options, setOptions] = useState(["Mayank", "Sai", "Tanmoy", "Gaurav"])
+    const [questionId, setQuestionId] = useState()
     const [selected, setSelected] = useState(null)
-    const [result, setResult] = useState(null)
+    const [result, setResult] = useState(null)   // true | false 
     const [timeLeft, setTimeLeft] = useState(30)
-    const [quotaLeft, setQuotaLeft] = useState(100)
+    const [quotaLeft, setQuotaLeft] = useState(5)
     const [leaderboard, setLeaderboard] = useState([])
     const [quotaExhausted, setQuotaExhausted] = useState(false)
+    const [loading, setLoading] = useState(false)
+
     const quotaExhaustedRef = useRef(false)
+    const timerRef = useRef(null)
+
+    function clearTimer() {
+        if (timerRef.current) {
+            clearInterval(timerRef.current)
+            timerRef.current = null
+        }
+    }
+
+    function startTimer() {
+        clearTimer()
+        timerRef.current = setInterval(() => {
+            setTimeLeft((prev) => {
+                if (prev === 1) {
+                    clearTimer()
+                    if (!quotaExhaustedRef.current) loadQuestion()
+                    return 0
+                }
+                return prev - 1
+            })
+        }, 1000)
+    }
 
     function loadQuestion() {
-        fetchQuestionAPI().then((data) => {
+        setLoading(true)
+        setSelected(null) // clears chosen option
+        setResult(null) // clears result message
+        setTimeLeft(30) // reset timer display
+
+        getQuestion()
+        .then((data) => {
             if (data.quotaExhausted) {
                 quotaExhaustedRef.current = true
                 setQuotaExhausted(true)
+                setLoading(false)
                 return
             }
             setQuestion(data.question)
             setOptions(data.options)
             setQuestionId(data.id)
             setQuotaLeft(data.quotaLeft)
-            setSelected(null)
-            setResult(null)
-            setTimeLeft(30)
+            setLoading(false)
+            startTimer()
         })
     }
 
     function loadLeaderboard() {
-        fetchLeaderboardAPI().then((data) => {
-            setLeaderboard(data)
-        })
+        getLeaderboard()
+        .then(setLeaderboard)
     }
 
-    // fetch first question on mount
     useEffect(() => {
         loadQuestion()
+        return () => clearTimer()
     }, [])
 
-    // poll leaderboard every 10 seconds
     useEffect(() => {
         loadLeaderboard()
         const interval = setInterval(loadLeaderboard, 10000)
         return () => clearInterval(interval)
     }, [])
 
-    // timer
-    useEffect(() => {
-        if (!question) return
-
-        const timer = setInterval(() => {
-            setTimeLeft((prev) => {
-                if (prev === 1) {
-                    clearInterval(timer)
-                    if (!quotaExhaustedRef.current) {
-                        setTimeout(() => loadQuestion(), 0);
-                    }
-                }
-                return prev - 1
-            })
-        }, 1000)
-
-        return () => clearInterval(timer)
-    }, [question])
-
     async function handleSubmit() {
-        if (!selected) return
+        if (!selected || result !== null) return
+        clearTimer()
 
         const data = await submitVote(questionId, selected)
 
@@ -92,45 +91,86 @@ function Home() {
         setTimeout(() => loadQuestion(), 1500)
     }
 
-    if (quotaExhausted) return <p>You have used all 100 questions for today. Come back tomorrow!</p>
-    if (!question) return <p>Loading...</p>
+    // timer color: green → yellow → red
+    function timerColor() {
+        if (timeLeft > 15) return "#22c55e"
+        if (timeLeft > 7) return "#eab308"
+        return "#ef4444"
+    }
+
+    if (quotaExhausted) {
+        return (
+            <div className="exhausted">
+                <h2>You've used all 5 questions for today.</h2>
+                <p>Come back tomorrow!</p>
+            </div>
+        )
+    }
 
     return (
-        <div>
-            <p>Quota left: {quotaLeft} / 100</p>
-            <p>Time left: {timeLeft}s</p>
+        <div className="game-layout">
 
-            <h1>{question}</h1>
-
-            {options.map((option) => (
-                <div key={option.id}>
-                    <input
-                        type="radio"
-                        id={option.id}
-                        name="poll"
-                        value={option.id}
-                        checked={selected === option.id}
-                        onChange={() => setSelected(option.id)}
-                    />
-                    <label htmlFor={option.id}>{option.text}</label>
+            {/* LEFT: Question panel */}
+            <div className="question-panel">
+                <div className="meta">
+                    <span className="quota">Questions left: {quotaLeft}</span>
+                    <span className="timer" style={{ color: timerColor() }}>
+                        {timeLeft}s
+                    </span>
                 </div>
-            ))}
 
-            <button onClick={handleSubmit}>Submit</button>
+                {/* (condition ? do this if true : if false) */}
+                {loading ? (
+                    <p className="loading">Generating question...</p>
+                ) : (
+                    <>
+                        <h1 className="question-text">{question}</h1>
 
-            {result === true && <p>Correct!</p>}
-            {result === false && <p>Wrong!</p>}
+                        <div className="options">
+                            {options.map((option) => (
+                                <label
+                                    key={option.id}
+                                    className={`option ${selected === option.id ? "selected" : ""}`}
+                                >
+                                    <input
+                                        type="radio"
+                                        name="poll"
+                                        value={option.id}
+                                        checked={selected === option.id}
+                                        onChange={() => setSelected(option.id)}
+                                    />
+                                    {option.text}
+                                </label>
+                            ))}
+                        </div>
 
-            <div>
-                <h2>Live Leaderboard</h2>
+                        <button
+                            className="submit-btn"
+                            onClick={handleSubmit}
+                            disabled={!selected || result !== null}
+                        >
+                            Submit
+                        </button>
+
+                        {result === true && <p className="result correct">✓ Correct! +4</p>}
+                        {result === false && <p className="result wrong">✗ Wrong! Still +1</p>}
+                    </>
+                )}
+            </div>
+
+            {/* RIGHT: Leaderboard */}
+            <div className="leaderboard-panel">
+                <h2>Leaderboard</h2>
+                {leaderboard.length === 0 && <p className="empty">No scores yet</p>}
                 {leaderboard.map((entry, index) => (
-                    <div key={entry.userId}>
-                        <span>#{index + 1}</span>
-                        <span>{entry.username}</span>
-                        <span>{entry.score} pts</span>
+                    <div key={entry.userId} className="leaderboard-row">
+                        <span className="rank">#{index + 1}</span>
+                        <span className="username">{entry.username}</span>
+                        <span className="score">{entry.score} pts</span>
                     </div>
                 ))}
             </div>
+
         </div>
     )
 }
