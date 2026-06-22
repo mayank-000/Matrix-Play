@@ -2,8 +2,8 @@ import { useEffect, useState, useRef } from "react"
 import { getQuestion, submitVote, getLeaderboard } from "../services/api"
 
 function Home() {
-    const [question, setQuestion] = useState("Hii! can you tell me your name")
-    const [options, setOptions] = useState(["Mayank", "Sai", "Tanmoy", "Gaurav"])
+    const [question, setQuestion] = useState()
+    const [options, setOptions] = useState([])
     const [questionId, setQuestionId] = useState()
     const [selected, setSelected] = useState(null)
     const [result, setResult] = useState(null)   // true | false 
@@ -100,10 +100,24 @@ function Home() {
 
     if (quotaExhausted) {
         return (
+          <div className="game-layout">
             <div className="exhausted">
                 <h2>You've used all 5 questions for today.</h2>
                 <p>Come back tomorrow!</p>
             </div>
+
+            <div className="leaderboard-panel">
+                <h2>Leaderboard</h2>
+                {leaderboard.length === 0 && <p className="empty">No scores yet</p>}
+                {leaderboard.map((entry, index) => (
+                    <div key={entry.userId} className="leaderboard-row">
+                        <span className="rank">#{index + 1}</span>
+                        <span className="username">{entry.username}</span>
+                        <span className="score">{entry.score} pts</span>
+                    </div>
+                ))}
+            </div>
+        </div>  
         )
     }
 
