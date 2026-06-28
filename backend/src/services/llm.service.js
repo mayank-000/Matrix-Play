@@ -10,7 +10,7 @@ export async function generateQuestion() {
         messages: [
             {
                 role: "user",
-                content: `Generate 1 multiple choice question on any programming topic.
+                content: `Generate 1 multiple choice question on any programming topic all questions must be unique.
                 Return ONLY a JSON object, no extra text, no markdown:
                 {
                     "question": "question text here",
