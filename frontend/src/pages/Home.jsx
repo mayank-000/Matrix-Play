@@ -1,6 +1,5 @@
-'use client'
 import { useEffect, useState, useRef } from "react"
-import { getQuestion, submitVote, getLeaderboard } from "../services/api"
+import homeService from "../services/home.service"
 
 function Home() {
     const [question, setQuestion] = useState()
@@ -9,7 +8,7 @@ function Home() {
     const [selected, setSelected] = useState(null)
     const [result, setResult] = useState(null)   // true | false 
     const [timeLeft, setTimeLeft] = useState(30)
-    const [quotaLeft, setQuotaLeft] = useState(5)
+    const [quotaLeft, setQuotaLeft] = useState(50)
     const [leaderboard, setLeaderboard] = useState([])
     const [quotaExhausted, setQuotaExhausted] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -44,7 +43,7 @@ function Home() {
         setResult(null) // clears result message
         setTimeLeft(30) // reset timer display
 
-        getQuestion()
+        homeService.getQuestion()
         .then((data) => {
             if (data.quotaExhausted) {
                 quotaExhaustedRef.current = true
@@ -62,7 +61,7 @@ function Home() {
     }
 
     function loadLeaderboard() {
-        getLeaderboard()
+        homeService.getLeaderboard()
         .then(setLeaderboard)
     }
 
@@ -81,7 +80,7 @@ function Home() {
         if (!selected || result !== null) return
         clearTimer()
 
-        const data = await submitVote(questionId, selected)
+        const data = await homeService.submitVote(questionId, selected)
 
         if (data.timeout) {
             loadQuestion()

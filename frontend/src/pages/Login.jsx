@@ -1,7 +1,8 @@
-'use client'
 
 import { useState } from "react";
 import { useNavigate, Link } from 'react-router-dom';
+import authService from "../services/auth.service";
+import { useAuth } from "../hooks/useAuth";
 
 function Login() {
     const [formData, setFormData] = useState({
@@ -11,6 +12,8 @@ function Login() {
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState('');
 
+    const { setUser } = useAuth();
+
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -19,8 +22,9 @@ function Login() {
         setErrorMsg('');
 
         try {
-            
-
+            const response = await authService.signIn(formData);
+            setUser(response.user);
+            console.log({ message: "Login successful" });
             navigate('/');
             
         } catch (err) {

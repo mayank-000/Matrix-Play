@@ -6,12 +6,12 @@ const redis = new Redis({ host: "localhost", port: 6379 });
 
 export const getQuestion = async (req, res) => {
   try {
-    const userId = "test-user";
+    const userId = req.userId;
 
     const progressRaw = await redis.get(`session:${userId}:progress`);
     const progress = progressRaw ? JSON.parse(progressRaw) : { current: 0 };
 
-    if (progress.current >= 5) {
+    if (progress.current >= 50) {
       return res.json({ quotaExhausted: true });
     }
     const generated = await generateQuestion();
@@ -45,7 +45,7 @@ export const getQuestion = async (req, res) => {
       id: questionId,
       question: generated.question,
       options: generated.options,
-      quotaLeft: 5 - (progress.current + 1),
+      quotaLeft: 50 - (progress.current + 1),
     });
   } catch (err) {
     console.error(err);
@@ -56,7 +56,7 @@ export const getQuestion = async (req, res) => {
 export const validateAnswer = async (req, res) => {
   try {
     const { questionId, optionId } = await req.body;
-    const userId = "test-user";
+    const userId = req.userId;
 
     const raw = await redis.get(`question:${questionId}`);
     if (!raw) return res.json({ timeout: true });

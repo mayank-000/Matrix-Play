@@ -7,4 +7,4 @@ const connection = {
     port: process.env.REDIS_PORT 
 }
 
-export const answerQueue = new Queue("answers", { connection })
+export const answerQueue = new Queue("answers", { connection });

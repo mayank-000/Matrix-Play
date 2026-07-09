@@ -1,7 +1,7 @@
-"use client";
 
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import authService from "../services/auth.service";
 
 function SignUp() {
   const [formData, setFormData] = useState({
@@ -35,6 +35,8 @@ function SignUp() {
     }
 
     try {
+        const resposne = await authService.signUp(formData);
+        console.log({ message: "SignUp successfull", user: resposne.user });
         navigate('/login');
     } catch (err) {
         console.log('SignUp Error', err);
