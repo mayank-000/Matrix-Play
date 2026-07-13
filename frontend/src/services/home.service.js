@@ -27,6 +27,15 @@ const homeService = {
             throw err.response?.data || err;
         }
     },
+
+    getQuata: async () => {
+        try {
+            const res = await api.get('/home/quota');
+            return res.data;
+        } catch (err) {
+            throw err.response?.data || err;
+        }
+    },
 };
 
 export default homeService;
